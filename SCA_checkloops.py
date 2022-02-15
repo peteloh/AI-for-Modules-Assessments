@@ -98,7 +98,7 @@ def runcode(codelines):
 if __name__ == "__main__":
     filelocation = "SCA/while_loop_nested.py"
 
-    loop_name = "while"  #input while or for
+    loop_name = "for"  #input while or for
 
     visualise_code(filelocation)
     edited_code, total_loop_count, nested_loop_count = detect_loops(filelocation, loop_name)
@@ -108,5 +108,5 @@ if __name__ == "__main__":
 
     print(color.RED + "\nSummary" + color.END)
     print("max nested loop = {count}".format(count=nested_loop_count))
-    print("total {name}loop count = {count}".format(count=total_loop_count, name=loop_name))
+    print("total {name} loop count = {count}".format(count=total_loop_count, name=loop_name))
 
