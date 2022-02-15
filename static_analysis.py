@@ -1,15 +1,8 @@
-test_code_string = """
-def triangle(x: int, y: int, z: int) -> str:
-    if x == y == z:
-        return "Equilateral triangle"
-    elif x == y or y == z or x == z:
-        return "Isosceles triangle"
-    else:
-        return "Scalene triangle"
-"""
-
 from io import StringIO
 import tokenize
+
+def detect_indentation(line):
+    return len(line) - len(line.lstrip())
 
 def remove_comments_and_docstrings(source):
     """
@@ -71,44 +64,76 @@ class code:
     def __init__(self, filename):
         if filename[-3:] == ".py":
             f = open(filename,'r')
-            codelines = f.readlines()
-            self.strings = codelines
+            self.long_string = remove_comments_and_docstrings(f.read())
+            self.lines = self.long_string.splitlines()
+
         else:
-            # filename is the string
-            self.strings = filename.splitlines()
+            # filename is the codestring already
+            self.long_string = remove_comments_and_docstrings(filename)
+            self.lines = self.long_string.splitlines()
     
-    def find_operator(operator):
-        found = []
-        for i in range(len(self.strings)):
-            operator_index = self.strings[i].find(operator)
-            comment_index = self.strings[i].find("#")
-            if operator_index != -1:
-                # the string exist in that line but is  it commented?
-                if comment_index == -1: found += [i]
-                else:
-                    if operator_location < comment_location: return operator_location
-                    # else operator is being commented so doesnt count         
+    def find_functions(self):
+        # classes so no need to detect functions in classes
+        functions = [] # [row,name]
+        for row in self.lines:
+            if row.find("def") != -1:
+                start = 4 # function name starts at 5th character [def + space + function name]
+                for j in range(4,len(row)):
+                    if row[j] == "(" :
+                        end = j
+                        functions += [row[start:end]]
+                        break
+        return functions
 
+    def find_operator(self, operator : str):
+        valid_operators = ["if","elif","else","for","while"]
+        if operator not in valid_operators : raise ValueError
+        location = []
+        if operator == "if":
+            for row in range(len(self.lines)):
+                index1 = self.lines[row].find(operator)
+                index2 = self.lines[row].find(" " + operator + " ") # this makes sure that if not found at the start of line, it should be a seperate word
+                if index1 == 0 : location += [[row, index1]]
+                elif index2 != -1 : location += [[row, index2 + 1]]
+        else:
+            for row in range(len(self.lines)):
+                index = self.lines[row].find(operator)
+                if index != -1 : location += [[row, index]]
+        return location
+    
+    def run(self):
+        try:
+            exec(self.long_string)
+        except Exception as e:
+            raise
 
-            if index != -1: found += [index]
-        if found == []: self.find_if = -1
-        else: self.find_if = index
+            
+    
+    
+    
+        
 
-    def find_ifs():
-            found = []
-            for line in self.strings:
-                index = line.find("if")
-                if index != -1: found += [index]
-            if found == []: self.find_if = -1
-            else: self.find_if = index
+CODE1_FILENAME = "BB_testcode.py"
+CODE2_STRING = """
+# comment 1
+def triangle(x: int, y: int, z: int) -> str:
+    if x == y == z:
+        return "Equilateral triangle"
+    elif x == y or y == z or x == z:
+        return "Isosceles triangle"
+    else:
+        return "Scalene triangle" #comment 2
+"""
+CODE3_STRING = """
+print("Hi")
+"""
 
+if __name__ == '__main__': 
+    
+    code = code(CODE2_STRING)
+    print(code.lines)
+    
+    code_if_location = code.find_operator("else")
+    print(code_if_location)
 
-
-
-# code1 is a codestring in the file
-code1 = code(test_code_string)
-print(code1.strings)
-
-# code2 is a filename for another code in the same directory
-code2 = code(test_file)
-print(code2.strings)
+    print(code.find_functions())
