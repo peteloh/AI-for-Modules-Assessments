@@ -69,7 +69,7 @@ class code:
             self.long_string = remove_comments_and_docstrings(filename)
             self.lines = self.long_string.splitlines()
     
-    def get_function_name(self):
+    def find_functions(self):
         # classes so no need to detect functions in classes
         functions = [] # [row,name]
         for row in self.lines:
@@ -82,7 +82,7 @@ class code:
                         break
         return functions
 
-    def operator_locations(self, operator : str):
+    def find_operator(self, operator : str):
         valid_operators = ["if","elif","else","for","while"]
         if operator not in valid_operators : raise ValueError
         location = []
@@ -90,13 +90,15 @@ class code:
             for row in range(len(self.lines)):
                 index1 = self.lines[row].find(operator)
                 index2 = self.lines[row].find(" " + operator + " ") # this makes sure that if not found at the start of line, it should be a seperate word
-                if index1 == 0 : location += [[row, index1]]
-                elif index2 != -1 : location += [[row, index2 + 1]]
+                if index1 == 0 : location += [index1]
+                elif index2 != -1 : location += [index2 + 1]
         else:
             for row in range(len(self.lines)):
                 index = self.lines[row].find(operator)
-                if index != -1 : location += [[row, index]]
-        return location
+                if index != -1 : location += [index]
+
+        if location == []: return None
+        else: return location
     
     def run(self):
         try:
@@ -104,20 +106,29 @@ class code:
         except Exception as e:
             raise
 
-    def find_nested_loops(self):
-        
+
+def find_nested_loops(code):
+    total_loops = []
+    for_loops = code.find_operator("for")
+    while_loops = code.find_operator("while")
+
+    if for_loops != None:
+        for loop in for_loops: total_loops += [loop]
+    if while_loops != None:
+        for loop in while_loops: total_loops += [loop]
+
+    indentation = []
+    for i in total_loops:
+        if i not in indentation: indentation += [i]
+    
+    return len(indentation)
 
 
 def detect_indentation(line):
     return len(line) - len(line.lstrip())
 
 
-    
-    
-    
-        
-
-CODE1_FILENAME = "BB_testcode.py"
+CODE1_FILENAME = "while_loop_nested.py"
 CODE2_STRING = """
 # comment 1
 def triangle(x: int, y: int, z: int) -> str:
@@ -134,9 +145,9 @@ print("Hi")
 
 if __name__ == '__main__': 
     
-    code = code(CODE2_STRING)
+    code = code(CODE1_FILENAME)
     print(code.lines)
 
-    print(code.find_operator("else"))
-
     print(code.find_functions())
+
+    print(find_nested_loops(code))
