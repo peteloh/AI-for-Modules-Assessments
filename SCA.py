@@ -1,9 +1,6 @@
 from io import StringIO
 import tokenize
 
-def detect_indentation(line):
-    return len(line) - len(line.lstrip())
-
 def remove_comments_and_docstrings(source):
     """
     Returns 'source' minus comments and docstrings.
@@ -72,7 +69,7 @@ class code:
             self.long_string = remove_comments_and_docstrings(filename)
             self.lines = self.long_string.splitlines()
     
-    def find_functions(self):
+    def get_function_name(self):
         # classes so no need to detect functions in classes
         functions = [] # [row,name]
         for row in self.lines:
@@ -85,7 +82,7 @@ class code:
                         break
         return functions
 
-    def find_operator(self, operator : str):
+    def operator_locations(self, operator : str):
         valid_operators = ["if","elif","else","for","while"]
         if operator not in valid_operators : raise ValueError
         location = []
@@ -107,7 +104,14 @@ class code:
         except Exception as e:
             raise
 
-            
+    def find_nested_loops(self):
+        
+
+
+def detect_indentation(line):
+    return len(line) - len(line.lstrip())
+
+
     
     
     
@@ -132,8 +136,7 @@ if __name__ == '__main__':
     
     code = code(CODE2_STRING)
     print(code.lines)
-    
-    code_if_location = code.find_operator("else")
-    print(code_if_location)
+
+    print(code.find_operator("else"))
 
     print(code.find_functions())
