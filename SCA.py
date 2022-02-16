@@ -57,15 +57,17 @@ def remove_comments_and_docstrings(source):
         last_lineno = end_line
     return out
 
-class code:
+class analyse:
     def __init__(self, filename):
         if filename[-3:] == ".py":
             f = open(filename,'r')
+            self.long_string_with_comments = f.read()
             self.long_string = remove_comments_and_docstrings(f.read())
             self.lines = self.long_string.splitlines()
 
         else:
             # filename is the codestring already
+            self.long_string_with_comments = filename
             self.long_string = remove_comments_and_docstrings(filename)
             self.lines = self.long_string.splitlines()
     
@@ -107,15 +109,19 @@ class code:
             raise
 
 
-def find_nested_loops(code):
-    total_loops = []
-    for_loops = code.find_operator("for")
-    while_loops = code.find_operator("while")
+def find_nested_loops(code, loop_to_check):
 
-    if for_loops != None:
-        for loop in for_loops: total_loops += [loop]
-    if while_loops != None:
-        for loop in while_loops: total_loops += [loop]
+    total_loops = []
+
+    if 'For Loop' in loop_to_check:
+        for_loops = code.find_operator("for")
+        if for_loops != None:
+            for loop in for_loops: total_loops += [loop]
+    
+    if 'While Loop' in loop_to_check:
+        while_loops = code.find_operator("while")
+        if while_loops != None:
+            for loop in while_loops: total_loops += [loop]
 
     indentation = []
     for i in total_loops:
@@ -145,7 +151,7 @@ print("Hi")
 
 if __name__ == '__main__': 
     
-    code = code(CODE1_FILENAME)
+    code = analyse(CODE1_FILENAME)
     print(code.lines)
 
     print(code.find_functions())
