@@ -40,7 +40,8 @@ if __name__ == '__main__':
     # Store what SCA Tests have to be done on student codes (do we also want to do on model code?)
     with st.container():
         sca_tests = {
-            "Count Nested Loops": False
+            "Count Nested Loops": False,
+            "Check Recursive Function": False
         }
 
         col1, col2 = st.columns((1,1))
@@ -51,6 +52,9 @@ if __name__ == '__main__':
         if col1.checkbox('Count Nested Loops'):
             loop_to_check = col1.multiselect('Pick Either or Both',['For Loop', 'While Loop'])
             sca_tests['Count Nested Loops'] = True
+        
+        if col1.checkbox('Check Recursive Function'):
+            sca_tests['Check Recursive Function'] = True
 
     st.markdown('#')   
     if st.button('Start'):
@@ -62,6 +66,12 @@ if __name__ == '__main__':
             # with st.sidebar.expander('Model Code', expanded=True):
             st.sidebar.markdown("**Model Code**")
             st.sidebar.code(MODEL_CODE.long_string_with_comments)
+            st.sidebar.markdown("**Model Code Analysis**")
+            if sca_tests['Count Nested Loops'] == True: 
+                st.sidebar.text("Number of Nested Loop = " + str(sca.find_nested_loops(MODEL_CODE, loop_to_check)))
+
+            if sca_tests['Check Recursive Function'] == True: 
+                st.sidebar.text("Recursive Function = " + str(sca.check_recursive(MODEL_CODE)))
         
         if upload2 != None:
             with st.container():
@@ -74,6 +84,9 @@ if __name__ == '__main__':
                         col2.markdown("**Analysis**")
                         if sca_tests['Count Nested Loops'] == True: 
                             col2.text("Number of Nested Loop = " + str(sca.find_nested_loops(STUDENT_CODE[key], loop_to_check)))
+                        
+                        if sca_tests['Check Recursive Function'] == True: 
+                            col2.text("Recursive Function = " + str(sca.check_recursive(STUDENT_CODE[key])))
         
                     
 

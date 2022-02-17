@@ -62,7 +62,7 @@ class analyse:
         if filename[-3:] == ".py":
             f = open(filename,'r')
             self.long_string_with_comments = f.read()
-            self.long_string = remove_comments_and_docstrings(f.read())
+            self.long_string = remove_comments_and_docstrings(self.long_string_with_comments)
             self.lines = self.long_string.splitlines()
 
         else:
@@ -73,31 +73,31 @@ class analyse:
     
     def find_functions(self):
         # classes so no need to detect functions in classes
-        functions = [] # [row,name]
-        for row in self.lines:
-            if row.find("def") != -1:
+        functions = [] # [row, name]
+        for i in range(len(self.lines)):
+            if self.lines[i].find("def") != -1:
                 start = 4 # function name starts at 5th character [def + space + function name]
-                for j in range(4,len(row)):
-                    if row[j] == "(" :
+                for j in range(4,len(self.lines[i])):
+                    if self.lines[i][j] == "(" :
                         end = j
-                        functions += [row[start:end]]
+                        functions += [[i, self.lines[i][start:end]]]
                         break
         return functions
 
     def find_operator(self, operator : str):
-        valid_operators = ["if","elif","else","for","while"]
+        valid_operators = ["if","elif","else","for","while", "return"]
         if operator not in valid_operators : raise ValueError
-        location = []
+        location = [] #saves the row and function name
         if operator == "if":
             for row in range(len(self.lines)):
                 index1 = self.lines[row].find(operator)
                 index2 = self.lines[row].find(" " + operator + " ") # this makes sure that if not found at the start of line, it should be a seperate word
-                if index1 == 0 : location += [index1]
-                elif index2 != -1 : location += [index2 + 1]
+                if index1 == 0 : location += [[row, index1]]
+                elif index2 != -1 : location += [[row, index2 + 1]]
         else:
             for row in range(len(self.lines)):
                 index = self.lines[row].find(operator)
-                if index != -1 : location += [index]
+                if index != -1 : location += [[row, index]]
 
         if location == []: return None
         else: return location
@@ -110,18 +110,22 @@ class analyse:
 
 
 def find_nested_loops(code, loop_to_check):
-
+    
     total_loops = []
 
     if 'For Loop' in loop_to_check:
-        for_loops = code.find_operator("for")
-        if for_loops != None:
+        for_locations = code.find_operator("for")
+        if for_locations != None:
+            for_loops = [i[1] for i in for_locations] #i[1] is the indentation
             for loop in for_loops: total_loops += [loop]
     
     if 'While Loop' in loop_to_check:
-        while_loops = code.find_operator("while")
-        if while_loops != None:
+        while_locations = code.find_operator("while")
+        if while_locations != None:
+            while_loops = [i[1] for i in while_locations] #i[1] is the indentation
             for loop in while_loops: total_loops += [loop]
+    
+    if total_loops == []: return "No Loops"
 
     indentation = []
     for i in total_loops:
@@ -130,30 +134,54 @@ def find_nested_loops(code, loop_to_check):
     return len(indentation)
 
 
-def detect_indentation(line):
-    return len(line) - len(line.lstrip())
+def check_recursive(code):
+    # 1. the code has to be a function
+    # 2. within the function, it calls itself
+    code_functions = code.find_functions()
 
+    if code_functions == []: return False #no function at all
 
-CODE1_FILENAME = "while_loop_nested.py"
-CODE2_STRING = """
-# comment 1
-def triangle(x: int, y: int, z: int) -> str:
-    if x == y == z:
-        return "Equilateral triangle"
-    elif x == y or y == z or x == z:
-        return "Isosceles triangle"
-    else:
-        return "Scalene triangle" #comment 2
-"""
-CODE3_STRING = """
-print("Hi")
-"""
+    function_row = [i[0] for i in code_functions]
+    return_row = [i[0] for i in code.find_operator("return")] # 1D list now, want just row part
 
-if __name__ == '__main__': 
+    recursive = False
+    for i in range(function_row[0], return_row[0]):
+        if code.lines[i].find(code_functions[0][1]) != -1:
+            recursive = True
     
-    code = analyse(CODE1_FILENAME)
-    print(code.lines)
+    return recursive
 
-    print(code.find_functions())
+if __name__ == '__main__':
+    TEST_CODE2 = """
+    def Sum(N):
+        if N == 2:
+            S = 1
+        else:
+            S = 3**(N-2) + Sum(N-1)
+        return S
 
-    print(find_nested_loops(code))
+    #
+    a = Sum(5)
+    print(a)
+    """
+
+    test_code_name = "./test_codes/for_loop1.py"
+    test_code = analyse(test_code_name)
+    print(check_recursive(test_code))
+
+    # code_functions = test_code.find_functions()
+    # print(code_functions)
+
+    # function_row = [i[0] for i in code_functions]
+    # print(function_row)
+    # return_row = [i[0] for i in test_code.find_operator("return")] # 1D list now, want just row part
+    # print(return_row)
+
+    # recursive = False
+    # for i in range(function_row[0], return_row[0]):
+    #     if test_code.lines[i].find(code_functions[0][1]) != -1:
+    #         recursive = True
+    
+    # print(recursive)
+
+    # print(code_functions, code_returns)
