@@ -36,8 +36,10 @@ class BaseNodeNormalizer(ast.NodeTransformer):
     def _mark_docstring_sub_nodes(node):
         """
         Inspired by ast.get_docstring, mark all docstring sub nodes.
+
         Case1:
         regular docstring of function/class/module
+
         Case2:
         def foo(self):
             '''pure string expression'''
@@ -47,6 +49,7 @@ class BaseNodeNormalizer(ast.NodeTransformer):
             if self.abc:
                 '''pure string expression'''
                 pass
+
         Case3:
         def foo(self):
             if self.abc:
@@ -54,6 +57,7 @@ class BaseNodeNormalizer(ast.NodeTransformer):
             else:
                 '''pure string expression'''
                 pass
+
         :param node: every ast node
         :return:
         """
@@ -237,9 +241,12 @@ class FuncNodeCollector(BaseNodeNormalizer):
 class FuncInfo(object):
     """
     Part of the astor library for Python AST manipulation.
+
     License: 3-clause BSD
+
     Copyright 2012 (c) Patrick Maupin
     Copyright 2013 (c) Berker Peksag
+
     """
 
     class NonExistent(object):
@@ -315,13 +322,16 @@ class FuncInfo(object):
     @staticmethod
     def _iter_node(node, name='', missing=NonExistent):
         """Iterates over an object:
+
            - If the object has a _fields attribute,
              it gets attributes in the order of this
              and returns name, value pairs.
+
            - Otherwise, if the object is a list instance,
              it returns name, value pairs for each item
              in the list, where the name is passed into
              this function (defaults to blank).
+
         """
         fields = getattr(node, '_fields', None)
         if fields is not None:
@@ -337,8 +347,10 @@ class FuncInfo(object):
     def _dump(node, name=None, initial_indent='', indentation='    ',
               maxline=120, maxmerged=80, special=ast.AST):
         """Dumps an AST or similar structure:
+
            - Pretty-prints with indentation
            - Doesn't print line/column/ctx info
+
         """
 
         def _inner_dump(node, name=None, indent=''):

@@ -1,6 +1,7 @@
 from io import StringIO
 import tokenize
 import numpy as np
+import os
 
 def cleanCode(source):
     """
@@ -59,18 +60,24 @@ def cleanCode(source):
     return out
 
 class scaTools:
-    def __init__(self, file : str):
-        if file[-3:] == ".py":
-            f = open(file,'r')
+    def __init__(self, filepath : str):
+        try:
+            f = open(filepath,'r')
             self.longCode = f.read()
+            self.codeLines = self.longCode.splitlines()
             self.longCodeNoComments = cleanCode(self.longCode)
             self.codeLinesNoComments = self.longCodeNoComments.splitlines()
 
-        else:
-            # filename is the codestring already
-            self.longCode = file
-            self.longCodeNoComments = cleanCode(file)
-            self.codeLinesNoComments = self.longCodeNoComments.splitlines()
+            path, filename = os.path.split(filepath)
+            self.filename = filename
+            
+            self.isFunction = False
+            for codeLine in self.codeLinesNoComments:
+                if codeLine.find("def") != -1:  self.isFunction = True
+                
+        except:
+            raise ValueError('Please input correct file path')
+    
     
     def findFunctions(self):
         codeLines = self.codeLinesNoComments
@@ -129,6 +136,19 @@ class scaTools:
                     operatorLocations["index"] += [index]
 
         return operatorLocations
+    
+    def convertToFunction(self):
+        if self.isFunction == True: return self.longCode
+        else:
+            newFirstLine = "def foo():"
+            indentation = "    "
+            codeLines = self.codeLines
+
+            newLongCode = newFirstLine
+            for line in codeLines:
+                newLongCode += ("\n" + indentation + line)
+
+            return newLongCode
 
 class scaModules(scaTools):
     def countNestedLoops(self, checklist):
@@ -154,10 +174,10 @@ class scaModules(scaTools):
     
     def isRecursive(self):
         # this works for 1 function recursion, does not work for multiple
-        functions = self.findFunctions()
+        if self.isFunction == False: return False
 
-        if len(functions["name"]) == 0: return False
-        elif len(functions["name"]) != 1: raise ValueError('Please make sure the code only contain 1 function')
+        functions = self.findFunctions()
+        if len(functions["name"]) != 1: raise ValueError('Please make sure the code only contain 1 function')
 
         functionName = functions["name"][0]
         functionRow = functions["row"][0]
@@ -181,16 +201,10 @@ class scaModules(scaTools):
         return False
     
     def readsFile(self):
-        validFileExtensions = [
-            ".txt",
-            ".py"
-        ]
         codeLines = self.codeLinesNoComments
 
         for i in range(len(codeLines)):
-            if codeLines[i].find("open") != -1:
-                for extension in validFileExtensions:
-                    if codeLines[i].find(extension) != -1: return True
+            if codeLines[i].find("open") != -1: return True
         
         return False
                     
@@ -201,7 +215,7 @@ def testCountNestedLoops():
     code1 = scaModules(fileLocation1)
     print(f"Result 1 = {code1.countNestedLoops(['for','while'])}")
     print("Expected 1 = 3")
-    print("testCountNestedLoops Completed!\n")
+    print("...testCountNestedLoops Completed!\n")
 
 def testIsRecursive():
     print("\nRunning testIsRecursive...")
@@ -214,7 +228,7 @@ def testIsRecursive():
     code2 = scaModules(fileLocation2)
     print(f"Result 2 = {code2.isRecursive()}")
     print("Expected 2 = True")
-    print("testIsRecursion Completed!\n")
+    print("...testIsRecursion Completed!\n")
 
 def testCodeReadsFile():
     print("\nRunning testCodeReadsFile...")
@@ -227,12 +241,32 @@ def testCodeReadsFile():
     code2 = scaModules(fileLocation2)
     print(f"Result 2 = {code2.readsFile()}")
     print("Expected 2 = False")
-    print("testCodeReadsFile Completed!\n")
+    print("...testCodeReadsFile Completed!\n")
+
+def testNonFunctions():
+    print("\nRunning testNonFunctions...")
+    fileLocation1 = "./test_codes/basic/not_a_function.py"
+    code1 = scaModules(fileLocation1)
+    print(f"Result 1 = {code1.countNestedLoops(['for','while'])}")
+    print("Expected 1 = 2")
+    print(f"Result 2 = {code1.isRecursive()}")
+    print("Expected 2 = False")
+    print(f"Result 3 = {code1.readsFile()}")
+    print("Expected 3 = True")
+    print("...testCountNestedLoops Completed!\n")
+
+def testConverToFunction():
+    fileLocation1 = "./test_codes/basic/not_a_function.py"
+    code1 = scaModules(fileLocation1)
+    print(code1.longCode)
+    print(code1.convertToFunction())
 
 
 if __name__ == '__main__':
-    testCountNestedLoops()
-    testIsRecursive()
-    testCodeReadsFile()
+    # testCountNestedLoops()
+    # testIsRecursive()
+    # testCodeReadsFile()
+    # testNonFunctions()
+    testConverToFunction()
 
 
