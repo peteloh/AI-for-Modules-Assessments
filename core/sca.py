@@ -63,6 +63,7 @@ class scaTools:
     def __init__(self, filepath : str):
         try:
             f = open(filepath,'r')
+            self.filepath = filepath
             self.longCode = f.read()
             self.codeLines = self.longCode.splitlines()
             self.longCodeNoComments = cleanCode(self.longCode)
@@ -149,6 +150,7 @@ class scaTools:
                 newLongCode += ("\n" + indentation + line)
 
             return newLongCode
+
 
 class scaModules(scaTools):
     def countNestedLoops(self, checklist):
@@ -267,6 +269,7 @@ if __name__ == '__main__':
     # testIsRecursive()
     # testCodeReadsFile()
     # testNonFunctions()
-    testConverToFunction()
+    # testConverToFunction()
+    pass
 
 

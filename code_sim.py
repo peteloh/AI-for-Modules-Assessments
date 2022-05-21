@@ -9,7 +9,7 @@ from core.scoss_fork.scoss import Scoss
 # import other core codes
 import core.sca as sca
 
-def getSimilarity(modelCodeDir : str, studentCodesDir : list):
+def pycode_similar_analysis(modelCodeDir : str, studentCodesDir : list):
 
   inputCodes = [
     # modelCode,
@@ -70,41 +70,7 @@ def getSimilarity(modelCodeDir : str, studentCodesDir : list):
     
   return results
 
-
-def testPycodeSimilar(modelCodeDir : str, studentCodesDir : list):
-  print(f"\nTesting codesim1...\n")
-
-  code = sca.scaTools(modelCodeDir)
-  modelCode = [code.longCode]
-
-  studentCodes = []
-  for i in range(len(studentCodesDir)):
-    code = sca.scaTools(studentCodesDir[i])
-    studentCodes += [code.longCode]
-
-  print("\nShowing code similarity results...\n")
-  # [modelCode, studentCodes[0], studentCodes[1]]
-  unifiedDiffResults = pycode_similar.detect(
-        modelCode + studentCodes, 
-        diff_method=pycode_similar.UnifiedDiff, 
-        keep_prints=True, 
-        module_level=False
-    )
-
-  treeDiffResults = pycode_similar.detect(
-      modelCode + studentCodes, 
-      diff_method=pycode_similar.TreeDiff, 
-      keep_prints=True, 
-      module_level=False
-  )
-  
-  for i in range(len(unifiedDiffResults)):
-    print(f"UnifiedDiff Result for Student{i+1}: {unifiedDiffResults[i][1][0].plagiarism_percent}")
-    print(f"TreeDiff    Result for Student{i+1}: {treeDiffResults[i][1][0].plagiarism_percent}\n")
-  
-  print(f"\nTest Completed!\n")
-
-def testScoss(modelCodeDir : str, studentCodesDir : list):
+def scoss_analysis(modelCodeDir : str, studentCodesDir : list):
   sc = Scoss(lang='py')
   sc.add_metric('count_operator', threshold=0) 
   sc.add_metric('set_operator', threshold=0)
@@ -117,20 +83,24 @@ def testScoss(modelCodeDir : str, studentCodesDir : list):
   sc.run()
   print(sc.get_matches(and_thresholds=True))
 
-def test():
-  modelCodeDir = "./test_codes/friday/part2_q1/model.py"
-  studentCodesDir = [
-    "./test_codes/friday/part2_q1/student1.py",
-    "./test_codes/friday/part2_q1/student2.py",
-    "./test_codes/friday/part2_q1/student3.py",
-    "./test_codes/friday/part2_q1/student4.py"
-    ]
+
+def main():
+  exercise = "ExA"
+  modelCodeDir = f"./data/Markscheme/{exercise}_solution.py"
+  
+  # we are using 2 to 30 to train, 31 to 40 to test
+  start = 2
+  end = 30
+  studentCodesDir = []
+  for i in range(start,end+1):
+    studentCodesDir += [f"./data/{exercise}/C{i}_{exercise}.py"]
+
+  print(studentCodesDir)
   # testPycodeSimilar(modelCodeDir, studentCodesDir)
   # testScoss(modelCodeDir, studentCodesDir)
   
-  result = getSimilarity(modelCodeDir, studentCodesDir)
-  print(result)
-
+  # result = getSimilarity(modelCodeDir, studentCodesDir)
+  # print(result)
 
 if __name__ == '__main__':
-  test()
+  main()
