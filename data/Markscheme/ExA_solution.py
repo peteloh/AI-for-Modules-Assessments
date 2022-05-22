@@ -30,7 +30,7 @@ for i in range(0,N):
 # determine c
 c = []
 for i in range(0,N):
-    # set this row
+
     # initialise sum
     s = 0
     for j in range(0,N):
