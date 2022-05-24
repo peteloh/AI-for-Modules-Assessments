@@ -1,25 +1,27 @@
 # basic imports
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 import os
+from os.path import exists
 from rich import print
 
 # import forked core codes
 import core.pycode_similar_fork.pycode_similar.pycode_similar as pycode_similar
-from core.scoss_fork.scoss import Scoss
+from core.scoss_fork.scoss import scoss
+from core.scoss_fork.scoss import smoss
 
 # import other core codes
 import sca
 
+### MAIN ANALYTIC TOOLS ###
 def pycode_similar_analysis(modelCodeDir : str, studentCodesDir : list):
-
   inputCodes = [
     # modelCode,
     # student1,
     # student2, 
     # etc.
   ]
-
   modelCode = sca.scaTools(modelCodeDir)
 
   studentFileNames = []
@@ -42,39 +44,60 @@ def pycode_similar_analysis(modelCodeDir : str, studentCodesDir : list):
       studentFileNames += [code.filename]
   
   print("\nShowing code similarity results...\n")
-  # [modelCode, studentCodes[0], studentCodes[1]]
-  unifiedDiffResults = pycode_similar.detect(
-        inputCodes, 
-        diff_method=pycode_similar.UnifiedDiff, 
-        keep_prints=True, 
-        module_level=False
-    )
+  unifiedDiff = []
+  treeDiff = []
+  for i in range(1,len(inputCodes)):
+    try:
+      unifiedDiffResults = pycode_similar.detect(
+          [inputCodes[0], inputCodes[i]], 
+          diff_method=pycode_similar.UnifiedDiff, 
+          keep_prints=True, 
+          module_level=False
+        )
+      treeDiffResults = pycode_similar.detect(
+          [inputCodes[0], inputCodes[i]], 
+          diff_method=pycode_similar.TreeDiff, 
+          keep_prints=True, 
+          module_level=False
+        )
+      unifiedDiff += [unifiedDiffResults[0][1][0].plagiarism_percent]
+      treeDiff += [treeDiffResults[0][1][0].plagiarism_percent]
 
-  treeDiffResults = pycode_similar.detect(
-      inputCodes, 
-      diff_method=pycode_similar.TreeDiff, 
-      keep_prints=True, 
-      module_level=False
+      # print("source1", studentFileNames[i])
+      # print("unifiedDiff", unifiedDiffResults[0][1][0].plagiarism_percent)
+      # print("treeDiff", treeDiffResults[0][1][0].plagiarism_percent)
+    except Exception as e:
+      print(e)
+      unifiedDiff += [0]
+      treeDiff += [0]
+    
+  
+  df = pd.DataFrame(
+    {'source1': studentFileNames,
+     'unified_diff': unifiedDiff,
+     'tree_diff': treeDiff
+    }
   )
 
-  results = {
-    "unifiedDiff": {},
-    "treeDiff": {}
-  }
+  return df
 
-  for i in range(len(unifiedDiffResults)):
+def moss_analysis(modelCodeDir : str, studentCodesDir : list):
+    sm = smoss.SMoss(lang='py')
+    # print(sm.get_userid())
+    sm.add_file(modelCodeDir)
+    for directory in studentCodesDir:
+        sm.add_file(directory)
 
-    print(f"UnifiedDiff Result for Student File {i+1}: {unifiedDiffResults[i][1][0].plagiarism_percent}")
-    print(f"TreeDiff    Result for Student File {i+1}: {treeDiffResults[i][1][0].plagiarism_percent}\n")
+    sm.set_threshold(0.0)
+    sm.run()
 
-    results["unifiedDiff"][studentFileNames[i]] = unifiedDiffResults[i][1][0].plagiarism_percent
-    results["treeDiff"][studentFileNames[i]] = treeDiffResults[i][1][0].plagiarism_percent
-    
-  return results
+    # print(sm.get_matches())
+    return sm.get_matches()
+
 
 def scoss_analysis(modelCodeDir : str, studentCodesDir : list):
 
-  sc = Scoss(lang='py')
+  sc = scoss.Scoss(lang='py')
   sc.add_metric('count_operator', threshold=0) 
   sc.add_metric('set_operator', threshold=0)
   sc.add_metric('hash_operator', threshold=0)
@@ -86,8 +109,12 @@ def scoss_analysis(modelCodeDir : str, studentCodesDir : list):
   sc.run()
   return sc.get_matches(and_thresholds=True)
 
-def convert_to_dataframe(data):
-  df = pd.json_normalize(data, sep='_')
+### DATAFRAME CLEANUP FUNCTIONS ###
+def convert_to_dataframe(data, normalise=False):
+  if normalise:
+    df = pd.json_normalize(data, sep='_')
+  else:
+    df = pd.DataFrame.from_dict(data)
   return(df)
 
 def get_details(filepath):
@@ -114,51 +141,70 @@ def add_marks_to_results(marks_df, results_df):
       row = marks_df.loc[marks_df['Student'] == student_id]
       # exercise_marks += [int(row[exercise])]
       # max_marks += [int(max_marks_row[exercise])]
-      student_percentage += [round(int(row[exercise])/int(max_marks_row[exercise]),2)]
+      student_percentage += [round(int(row[exercise])/int(max_marks_row[exercise]),4)]
 
   # results_df['Actual Marks'] = exercise_marks
   # results_df['Max Marks'] = max_marks
-  results_df['Actual Percentage'] = student_percentage
+  results_df['actual_marks'] = student_percentage
   return results_df
 
-def analyse(exercise):
+
+### MAIN ###
+def analyse(exercise, data):
   # exercise = A, B, C or D
 
+  # SETUP
   marks_df = pd.read_csv('./data/overall_marks.csv')
-  # print(marks_df)
   modelCodeDir = f"./data/Markscheme/{exercise}_solution.py"
   # we are using 2 to 30 to train, 31 to 40 to test
   # note C28 and C1 does not exist
 
-  train = ["C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11", "C12", "C13", "C14", "C15", \
-           "C16", "C17", "C18", "C19", "C20", "C22", "C23", "C24", "C25", "C26", "C27", "C29", "C30"]
-
-  test  = ["C31", "C32", "C33", "C34", "C35", "C36", "C37", "C38", "C39", "C40"]
-
+  # train = train[1:4]
   studentCodesDir = []
-  for i in train:
+  for i in data:
     studentCodesDir += [f"./data/{exercise}/{i}_{exercise}.py"]
 
-  # method 1
+
+  # SCOSS Analysis
   results_dict = scoss_analysis(modelCodeDir, studentCodesDir)
-  results_df = convert_to_dataframe(results_dict)
+  df1 = convert_to_dataframe(results_dict, normalise=True)
+  df1 = df1.rename(
+    columns={
+      "scores_count_operator": "SCOSS_count",
+      "scores_set_operator": "SCOSS_set",
+      "scores_hash_operator": "SCOSS_hash"
+    }
+  )
   # remove data that is now compared to model code
-  results_df = results_df.drop(results_df[results_df.source2 != f"./data/Markscheme/{exercise}_solution.py"].index)
-  results_df = results_df.sort_values('source1')
-  results_df = results_df.reset_index(drop=True)
-  results_df = remove_filepaths(results_df)
-  results_df = add_marks_to_results(marks_df, results_df)
-  results_df.to_csv(f'data/Results/{exercise}_scoss_results.csv')
-  
-  
-  # method 2 - currently not working
-  result2 = pycode_similar_analysis(modelCodeDir, studentCodesDir)
-  print(result2)
-  # print(result)
+  df1 = df1.drop(df1[df1.source2 != f"./data/Markscheme/{exercise}_solution.py"].index)
+  df1 = df1.sort_values('source1')
+  df1 = df1.reset_index(drop=True)
+  df1 = remove_filepaths(df1)
+  df1 = add_marks_to_results(marks_df, df1)
+  df1.to_csv(f'data/Results/{exercise}_scoss_results.csv')
 
+  # Pycode Similar Analysis - reading from csv because it is super slow
+  if exists(f'data/Results/{exercise}_pysimilar_results.csv'):
+    df2 = pd.read_csv(f'data/Results/{exercise}_pysimilar_results.csv')
+  else:
+    df2 = pycode_similar_analysis(modelCodeDir, studentCodesDir)
+    df2 = df2.sort_values('source1')
+    df2.to_csv(f'data/Results/{exercise}_pysimilar_results.csv')
 
-  return results_df
+  # combine these 2 into 1 final df (they have same source1 vals)
+  df = pd.merge(df1, df2, on="source1")
+
+  # arranging df so that actual marks is at the end
+  cols = df.columns.tolist()
+  df = df[["source1", "source2", "SCOSS_count", "SCOSS_set", "SCOSS_hash", "unified_diff", "tree_diff", "actual_marks"]]
+  # print(df)
+
+  return df
+
 
 
 if __name__ == '__main__':
-  main()
+  analyse("ExA")
+  analyse("ExB")
+  analyse("ExC")
+  analyse("ExD")
