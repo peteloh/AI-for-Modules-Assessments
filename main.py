@@ -133,19 +133,20 @@ def add_marks_to_results(marks_df, results_df):
   results_df = results_df.reset_index()  
   marks_df = marks_df.reset_index()
   max_marks_row = marks_df.loc[marks_df['Student'] == "Max"]
-  # exercise_marks = []
-  # max_marks = []
+  exercise_marks = []
+  max_marks = []
   student_percentage = []
   for index, row in results_df.iterrows():
       student_id, exercise = get_details(row['source1'])
       row = marks_df.loc[marks_df['Student'] == student_id]
-      # exercise_marks += [int(row[exercise])]
-      # max_marks += [int(max_marks_row[exercise])]
+      exercise_marks += [int(row[exercise])]
+      max_marks += [int(max_marks_row[exercise])]
       student_percentage += [round(int(row[exercise])/int(max_marks_row[exercise]),4)]
 
-  # results_df['Actual Marks'] = exercise_marks
-  # results_df['Max Marks'] = max_marks
-  results_df['actual_marks'] = student_percentage
+  
+  results_df['max_mark'] = max_marks
+  results_df['real_mark'] = exercise_marks
+  results_df['real_percentage'] = student_percentage
   return results_df
 
 
@@ -196,7 +197,7 @@ def analyse(exercise, data):
 
   # arranging df so that actual marks is at the end
   cols = df.columns.tolist()
-  df = df[["source1", "source2", "SCOSS_count", "SCOSS_set", "SCOSS_hash", "unified_diff", "tree_diff", "actual_marks"]]
+  df = df[["source1", "source2", "real_mark", "max_mark", "real_percentage", "SCOSS_count", "SCOSS_set", "SCOSS_hash", "unified_diff", "tree_diff"]]
   # print(df)
 
   return df
@@ -204,7 +205,10 @@ def analyse(exercise, data):
 
 
 if __name__ == '__main__':
-  analyse("ExA")
-  analyse("ExB")
-  analyse("ExC")
-  analyse("ExD")
+  data = ["C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11", "C12", "C13", "C14", "C15",
+          "C16", "C17", "C18", "C19", "C20", "C21", "C22", "C23", "C24", "C25", "C26", "C27", "C29", "C30",
+          "C31", "C32", "C33", "C34", "C35", "C36", "C37", "C38", "C39", "C40"]
+  analyse("ExA", data)
+  analyse("ExB", data)
+  analyse("ExC", data)
+  analyse("ExD", data)
